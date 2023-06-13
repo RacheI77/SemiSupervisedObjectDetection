@@ -24,7 +24,7 @@ def train(bing_image, bing_mask):
     # train the AutoEncoder(decoder)
     predict_mask_cuda, bing_feature_cuda = ae_model(bing_image_cuda)
     activation_fn = torch.nn.Sigmoid()
-    predict_mask_cuda = activation_fn(predict_mask)
+    predict_mask_cuda = activation_fn(predict_mask_cuda)
     predict_mask = predict_mask_cuda.detach().cpu()
     resolution_loss = ae_model.patch_loss(predict_mask_cuda, bing_mask_cuda)
 
@@ -50,7 +50,7 @@ def eval(model, eval_dataLoader):
             predict_mask = model(img)
             activation_fn = torch.nn.Sigmoid()
             predict_mask_cuda = activation_fn(predict_mask)
-            loss = ae_model.patch_loss(predict_mask_cuda, bing_mask_cuda)
+            loss = ae_model.patch_loss(predict_mask_cuda, real_mask)
             valid_loss += loss.item()
     return valid_loss / len(eval_dataLoader)
 
@@ -107,12 +107,13 @@ if __name__ == '__main__':
     unlabel_dataLoader = archaeological_georgia_biostyle_dataloader.SitesLoader(config.DataLoaderConfig,
                                                                                 flag="unlabeled")
     label_dataLoader = archaeological_georgia_biostyle_dataloader.SitesLoader(config.DataLoaderConfig, flag="train")
+    eval_dataLoader = archaeological_georgia_biostyle_dataloader.SitesLoader(config.DataLoaderConfig, flag="eval")
     print('Labeled data batch amount: ', len(unlabel_dataLoader) + len(label_dataLoader))
 
     # dino_encoder_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitl14')
     dino_encoder_model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
     dino_encoder_model.cuda()
-    decoder = Decoder(img_size=(config.ModelConfig['imgh'], config.ModelConfig['imgw']),
+    decoder = Decoder(img_size=(config.ModelConfig['imgh'], config.ModelConfig['imgw']), out_chans=1,
                       patch_size=dino_encoder_model.patch_size, depth=dino_encoder_model.n_blocks,
                       embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads).cuda()
     ae_model = AutoEncoder(dino_encoder_model, decoder)
@@ -146,17 +147,17 @@ if __name__ == '__main__':
                        os.path.join('checkpoints', 'vit-seg-epoch-{0}-loss-{1:.3f}.pth'.format(epoch_i, sum(epoch_loss))))
         print('--------epoch {0} loss: {1:.6f}'.format(epoch_i, sum(epoch_loss)))
         scheduler.step()
-        train_loss = sum(epoch_loss) / len(train_dataLoader)
-        eval_loss = evaluate(model, eval_dataLoader)
+        train_loss = sum(epoch_loss) / len(label_dataLoader)
+        eval_loss = eval(ae_model, eval_dataLoader)
 
         # save the best model
         if eval_loss < best_loss:
             best_loss = eval_loss
-            torch.save(model.state_dict(),
+            torch.save(ae_model.state_dict(),
                         os.path.join('checkpoints', 'vit-seg-best-epoch-{0}-train-{1:.3f}-eval-{2:.3f}.pth'
                                     .format(epoch_i, train_loss, best_loss)))
 
-        print('epoch {0} train_loss: {1:.6f} eval_loss: {2:.6f}'.format(i, train_loss, eval_loss))
+        print('epoch {0} train_loss: {1:.6f} eval_loss: {2:.6f}'.format(epoch_i, train_loss, eval_loss))
         loss_path_train.append(train_loss)
         loss_path_eval.append(eval_loss)
         print()
