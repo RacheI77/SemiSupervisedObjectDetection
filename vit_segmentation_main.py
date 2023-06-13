@@ -13,6 +13,7 @@ from models.ViT_Decoder import Decoder
 from models.ViT_AutoEncoder import AutoEncoder
 import cv2
 
+
 # python -m visdom.server
 
 def train(bing_image, bing_mask):
@@ -20,6 +21,7 @@ def train(bing_image, bing_mask):
     # cuda tensors
     bing_image_cuda = bing_image.cuda()
     bing_mask_cuda = bing_mask.cuda()
+    bing_mask_cuda = bing_mask_cuda.unsqueeze(dim=1)
 
     # train the AutoEncoder(decoder)
     predict_mask_cuda, bing_feature_cuda = ae_model(bing_image_cuda)
@@ -39,6 +41,7 @@ def train(bing_image, bing_mask):
     optimizer.step()
     return predict_mask
 
+
 def eval(model, eval_dataLoader):
     with torch.no_grad():
         model.eval()
@@ -47,7 +50,7 @@ def eval(model, eval_dataLoader):
             img = img.to(device="cuda:0", dtype=torch.float32)
             real_mask = mask.to(device="cuda:0", dtype=torch.float32)
             real_mask = real_mask.unsqueeze(1)
-            predict_mask = model(img)
+            predict_mask,_ = model(img)
             activation_fn = torch.nn.Sigmoid()
             predict_mask_cuda = activation_fn(predict_mask)
             loss = ae_model.patch_loss(predict_mask_cuda, real_mask)
@@ -60,7 +63,8 @@ def predict():
     dino_encoder_model.cuda()
     decoder = Decoder(img_size=(config.ModelConfig['imgh'], config.ModelConfig['imgw']),
                       patch_size=dino_encoder_model.patch_size, depth=dino_encoder_model.n_blocks,
-                      embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads).cuda()
+                      embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads,
+                      out_chans=1).cuda()
     ae_model = AutoEncoder(dino_encoder_model, decoder)
     if os.path.exists(os.path.join('checkpoints', 'vit-seg-pretrain.pth')):
         ae_model.load_state_dict(torch.load(os.path.join('checkpoints', 'vit-seg-pretrain.pth')))
@@ -88,7 +92,7 @@ def predict():
             real_mask_img[0, :, :] = real_mask_numpy
             vis.image(real_mask_img)
             real_mask_img = real_mask_img.transpose((1, 2, 0))
-            real_mask_img=cv2.cvtColor(real_mask_img,cv2.COLOR_RGB2BGR)
+            real_mask_img = cv2.cvtColor(real_mask_img, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join('figures', 'sample_' + str(i) + "_gt.png"), 255 * real_mask_img)
             predict_mask = predict_mask.cpu()
             predict_mask_numpy = predict_mask.numpy()
@@ -99,7 +103,6 @@ def predict():
             predict_mask_img = predict_mask_img.transpose((1, 2, 0))
             predict_mask_img = cv2.cvtColor(predict_mask_img, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join('figures', 'sample_' + str(i) + "_predict.png"), 255 * predict_mask_img)
-
 
 
 if __name__ == '__main__':
@@ -144,7 +147,8 @@ if __name__ == '__main__':
         # save model
         if epoch_i % 5 == 0:
             torch.save(ae_model.state_dict(),
-                       os.path.join('checkpoints', 'vit-seg-epoch-{0}-loss-{1:.3f}.pth'.format(epoch_i, sum(epoch_loss))))
+                       os.path.join('checkpoints',
+                                    'vit-seg-epoch-{0}-loss-{1:.3f}.pth'.format(epoch_i, sum(epoch_loss))))
         print('--------epoch {0} loss: {1:.6f}'.format(epoch_i, sum(epoch_loss)))
         scheduler.step()
         train_loss = sum(epoch_loss) / len(label_dataLoader)
@@ -154,7 +158,7 @@ if __name__ == '__main__':
         if eval_loss < best_loss:
             best_loss = eval_loss
             torch.save(ae_model.state_dict(),
-                        os.path.join('checkpoints', 'vit-seg-best-epoch-{0}-train-{1:.3f}-eval-{2:.3f}.pth'
+                       os.path.join('checkpoints', 'vit-seg-best-epoch-{0}-train-{1:.3f}-eval-{2:.3f}.pth'
                                     .format(epoch_i, train_loss, best_loss)))
 
         print('epoch {0} train_loss: {1:.6f} eval_loss: {2:.6f}'.format(epoch_i, train_loss, eval_loss))
