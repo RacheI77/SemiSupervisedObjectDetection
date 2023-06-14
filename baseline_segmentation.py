@@ -165,4 +165,5 @@ if __name__ == '__main__':
         'DeepLabV3+': smp.DeepLabV3Plus(encoder_name=ENCODER, encoder_weights=ENCODER_WEIGHTS, activation=ACTIVATION,
                                         classes=1, in_channels=3),
     }
+    train()
     predict('DeepLabV3+', 'DeepLabV3+ epoch 49 train 0.151 eval 0.337 fps 1.34.pth')
