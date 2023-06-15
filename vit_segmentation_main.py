@@ -14,6 +14,7 @@ import cv2
 import models.Loss as myLoss
 import matplotlib.pyplot as plt
 import time
+import sys
 
 
 # python -m visdom.server
@@ -43,7 +44,7 @@ def train():
 
         s_time = time.time()
         eval_loss = eval(ae_model, eval_dataLoader)
-        fps = (time.time() - s_time) / len(eval_dataLoader)
+        fps = len(eval_dataLoader) / (time.time() - s_time)
 
         # save the best model
         if eval_loss < best_loss:
@@ -146,7 +147,7 @@ def predict(weight_file):
         for img, mask, _, _ in eval_dataLoader:
             i += 1
             img = img.cuda()
-            predict_mask,_ = ae_model(img)
+            predict_mask, _ = ae_model(img)
             activation_fn = torch.nn.Sigmoid()
             predict_mask = activation_fn(predict_mask)
 
@@ -191,6 +192,14 @@ if __name__ == '__main__':
     if os.path.exists(os.path.join('checkpoints', 'vit-seg-pretrain.pth')):
         ae_model.load_state_dict(torch.load(os.path.join('checkpoints', 'vit-seg-pretrain.pth')))
         print('pretrained model loaded')
+    # load autoencoder pretrained encoder weight
+    elif len(sys.argv) > 1:
+        encoder_weight = sys.argv[1]
+        ae_model.load_state_dict(torch.load(os.path.join('checkpoints', encoder_weight)))
+        ae_model.froze_encoder()
+        print('autoencoder pretrained model loaded : ', sys.argv[1])
+    else:
+        print("training without pretrained weights")
 
     optimizer = torch.optim.Adam(filter(lambda x: x.requires_grad is not False, ae_model.parameters()),
                                  lr=config.ModelConfig['lr'], weight_decay=config.ModelConfig['weight_decay'],

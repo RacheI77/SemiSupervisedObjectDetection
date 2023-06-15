@@ -50,7 +50,7 @@ def predict(model_name, weight_name):
             predict_mask_img[0, :, :] = predict_mask_numpy
             vis.image(predict_mask_img)
             real_mask_img = real_mask_img.transpose((1, 2, 0))
-            real_mask_img=cv2.cvtColor(real_mask_img,cv2.COLOR_RGB2BGR)
+            real_mask_img = cv2.cvtColor(real_mask_img, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join('figures', 'sample ' + str(i) + " gt.png"), 255 * real_mask_img)
             predict_mask_img = predict_mask_img.transpose((1, 2, 0))
             predict_mask_img = cv2.cvtColor(predict_mask_img, cv2.COLOR_RGB2BGR)
@@ -115,7 +115,7 @@ def train():
             train_loss = sum(epoch_loss) / len(train_dataLoader)
             s_time = time.time()
             eval_loss = evaluate(model, loss_fun)
-            fps = (time.time() - s_time) / len(eval_dataLoader)
+            fps = len(eval_dataLoader) / (time.time() - s_time)
 
             # save the best model
             if eval_loss < best_loss:

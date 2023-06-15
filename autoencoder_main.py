@@ -23,13 +23,12 @@ def train(bing_image):
     # train the AutoEncoder(decoder)
     recovery_image_cuda, bing_feature_cuda = ae_model(bing_image_cuda)
     recovery_image = recovery_image_cuda.detach().cpu()
-    resolution_loss = ae_model.patch_loss(recovery_image_cuda, bing_image_cuda)
+    loss = ae_model.patch_loss(recovery_image_cuda, bing_image_cuda)
 
-    loss = resolution_loss
     optimizer.zero_grad()
     if not torch.isnan(loss): loss.backward()
     if len(epoch_loss) % 5 == 0:
-        print('loss:{0:.6f} resoLoss:{1:.4f}'.format(float(loss), float(resolution_loss)))
+        print('loss:{0:.6f}'.format(float(loss)))
     epoch_loss.append(float(loss))
     # torch.nn.utils.clip_grad_norm_(ae_model.parameters(), max_norm=20, norm_type=2)
     torch.nn.utils.clip_grad_value_(ae_model.parameters(), clip_value=1.2)
@@ -87,7 +86,8 @@ if __name__ == '__main__':
         # save model
         if epoch_i % 5 == 0:
             torch.save(ae_model.state_dict(),
-                       os.path.join('checkpoints', 'epoch {0} loss {1:.3f}.pth'.format(epoch_i, sum(epoch_loss))))
+                       os.path.join('checkpoints',
+                                    'autoencoder epoch {0} loss {1:.3f}.pth'.format(epoch_i, sum(epoch_loss))))
         print('--------epoch {0} loss: {1:.6f}'.format(epoch_i, sum(epoch_loss)))
         scheduler.step()
         print()

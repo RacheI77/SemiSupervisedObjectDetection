@@ -16,8 +16,11 @@ class AutoEncoder(nn.Module):
 
         # frozen the pre-trained model
         if froze_encoder:
-            for param in encoder.parameters():
-                param.requires_grad = False
+            self.froze_encoder()
+
+    def froze_encoder(self):
+        for param in self.encoder.parameters():
+            param.requires_grad = False
 
     def forward(self, x):
         if self.vit_encoder:
