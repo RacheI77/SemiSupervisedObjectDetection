@@ -54,6 +54,9 @@ if __name__ == '__main__':
     if os.path.exists(os.path.join('checkpoints', 'pretrain.pth')):
         ae_model.load_state_dict(torch.load(os.path.join('checkpoints', 'pretrain.pth')))
         print('pretrained model loaded')
+        torch.save(dino_encoder_model.state_dict(),
+                   os.path.join('checkpoints',
+                                'autoencoder-pretrained-encoder.pth'))
 
     optimizer = torch.optim.Adam(filter(lambda x: x.requires_grad is not False, ae_model.parameters()),
                                  lr=config.ModelConfig['lr'], weight_decay=config.ModelConfig['weight_decay'],

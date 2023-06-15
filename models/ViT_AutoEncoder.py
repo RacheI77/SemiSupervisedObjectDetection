@@ -18,9 +18,13 @@ class AutoEncoder(nn.Module):
         if froze_encoder:
             self.froze_encoder()
 
-    def froze_encoder(self):
-        for param in self.encoder.parameters():
+    def froze_encoder(self, layers_num=12):
+        for param in self.encoder.blocks[:layers_num].parameters():
             param.requires_grad = False
+
+    def unfroze_encoder(self):
+        for param in self.encoder.parameters():
+            param.requires_grad = True
 
     def forward(self, x):
         if self.vit_encoder:

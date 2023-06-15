@@ -195,8 +195,8 @@ if __name__ == '__main__':
     # load autoencoder pretrained encoder weight
     elif len(sys.argv) > 1:
         encoder_weight = sys.argv[1]
-        ae_model.load_state_dict(torch.load(os.path.join('checkpoints', encoder_weight)))
-        ae_model.froze_encoder()
+        dino_encoder_model.load_state_dict(torch.load(os.path.join('checkpoints', encoder_weight)))
+        ae_model.froze_encoder(10)
         print('autoencoder pretrained model loaded : ', sys.argv[1])
     else:
         print("training without pretrained weights")
@@ -208,5 +208,5 @@ if __name__ == '__main__':
     # loss_function = torch.nn.L1Loss()
     loss_function = myLoss.SegmentationLoss(1, loss_type='dice', activation='none')
 
-    # train()
-    predict('vit-seg epoch 38 train 0.230 eval 0.274 fps 1.43.pth')
+    train()
+    # predict('vit-seg-without-autoencoder epoch 38 train 0.230 eval 0.274 fps 0.70.pth')
