@@ -5,9 +5,9 @@ import torch.nn as nn
 import torch
 
 
-class AutoEncoder(nn.Module):
+class EncoderDecoder(nn.Module):
     def __init__(self, encoder, decoder, froze_encoder=False, vit_encoder=True):
-        super(AutoEncoder, self).__init__()
+        super(EncoderDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.vit_encoder = vit_encoder

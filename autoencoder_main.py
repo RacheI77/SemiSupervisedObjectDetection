@@ -10,7 +10,7 @@ import visdom
 import numpy as np
 import cv2
 from models.ViT_Decoder import Decoder
-from models.ViT_AutoEncoder import AutoEncoder
+from models.ViT_EncoderDecoder import EncoderDecoder
 
 
 # python -m visdom.server
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     decoder = Decoder(img_size=(config.ModelConfig['imgh'], config.ModelConfig['imgw']),
                       patch_size=dino_encoder_model.patch_size, depth=dino_encoder_model.n_blocks,
                       embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads).cuda()
-    ae_model = AutoEncoder(dino_encoder_model, decoder)
+    ae_model = EncoderDecoder(dino_encoder_model, decoder)
     if os.path.exists(os.path.join('checkpoints', 'pretrain.pth')):
         ae_model.load_state_dict(torch.load(os.path.join('checkpoints', 'pretrain.pth')))
         print('pretrained model loaded')

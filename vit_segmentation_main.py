@@ -9,7 +9,7 @@ import config
 import visdom
 import numpy as np
 from models.ViT_Decoder import Decoder
-from models.ViT_AutoEncoder import AutoEncoder
+from models.ViT_EncoderDecoder import EncoderDecoder
 import cv2
 import models.Loss as myLoss
 import matplotlib.pyplot as plt
@@ -138,7 +138,7 @@ def predict(weight_file):
                       patch_size=dino_encoder_model.patch_size, depth=dino_encoder_model.n_blocks,
                       embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads,
                       out_chans=1).cuda()
-    ae_model = AutoEncoder(dino_encoder_model, decoder)
+    ae_model = EncoderDecoder(dino_encoder_model, decoder)
     ae_model.load_state_dict(torch.load(os.path.join('checkpoints', weight_file)))
     eval_dataLoader = archaeological_georgia_biostyle_dataloader.SitesLoader(config.DataLoaderConfig, flag="eval")
     i = 0
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     decoder = Decoder(img_size=(config.ModelConfig['imgh'], config.ModelConfig['imgw']), out_chans=1,
                       patch_size=dino_encoder_model.patch_size, depth=dino_encoder_model.n_blocks,
                       embed_dim=dino_encoder_model.embed_dim, num_heads=dino_encoder_model.num_heads).cuda()
-    ae_model = AutoEncoder(dino_encoder_model, decoder)
+    ae_model = EncoderDecoder(dino_encoder_model, decoder)
     if os.path.exists(os.path.join('checkpoints', 'vit-seg-pretrain.pth')):
         ae_model.load_state_dict(torch.load(os.path.join('checkpoints', 'vit-seg-pretrain.pth')))
         print('pretrained model loaded')
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     elif len(sys.argv) > 1:
         encoder_weight = sys.argv[1]
         dino_encoder_model.load_state_dict(torch.load(os.path.join('checkpoints', encoder_weight)))
-        ae_model.froze_encoder(10)
+        ae_model.froze_encoder(2)
         print('autoencoder pretrained model loaded : ', sys.argv[1])
     else:
         print("training without pretrained weights")
