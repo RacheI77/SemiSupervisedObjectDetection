@@ -8,7 +8,9 @@ import models.Loss as myLoss
 import torch.nn as nn
 import torch
 import config
-
+import numpy as np
+import cv2
+import visdom
 
 class VitSegModel(nn.Module):
     def __init__(self, pretrain_weight='vit-seg-without-autoencoder epoch 38 train 0.230 eval 0.274 fps 0.70.pth',
@@ -56,8 +58,13 @@ class VitSegModel(nn.Module):
         self.scheduler.step()
 
     def show_mask(self, img, mask):
-        img = img.squeeze().cpu().numpy()
-        mask = mask.squeeze().cpu().numpy()
-        plt.subsplot(1,2,1)
-        plt.imshow(img)
-        
+        vis = visdom.Visdom(env='plot1')
+
+        mask = mask.cpu().numpy()[0]
+        mask_img = np.copy(img)
+        mask_img[0, :, :] = mask
+        vis.image(mask_img)
+        mask_img = mask_img.transpose((1, 2, 0))
+        mask_img = cv2.cvtColor(mask_img, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(os.path.join('figures', 'show mask ' , " .png"), 255 * mask_img)
+
