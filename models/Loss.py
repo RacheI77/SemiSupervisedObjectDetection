@@ -6,8 +6,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+''' this function is used to calculate the dice coefficient, which shows the similarity of two samples
+parameter pred: predicted class
+            gt: ground truth
+  smooth_value:
+    activation: activation function
+'''
 def diceCoeff(pred, gt, smooth_value: float = 1.0, activation="softmax2d"):
-    r""" computational formula：
+    """ computational formula:
         dice = (2 * tp) / (2 * tp + fp + fn)
     """
 
@@ -30,8 +36,8 @@ def diceCoeff(pred, gt, smooth_value: float = 1.0, activation="softmax2d"):
     tp = torch.abs(torch.sum(gt_flat * pred_flat, dim=1))
     fp = torch.sum(torch.abs(pred_flat), dim=1)
     fn = torch.sum(gt_flat, dim=1)
-    loss = (2 * tp + smooth_value) / (fp + fn + smooth_value)
-    return torch.mean(loss)
+    score = (2 * tp + smooth_value) / (fp + fn + smooth_value)
+    return torch.mean(score)
 
 
 class SegmentationLoss(nn.Module):
@@ -44,13 +50,16 @@ class SegmentationLoss(nn.Module):
         self.loss_type = loss_type
 
     def forward(self, y_pred, y_true):
-        class_loss = []
+        ##store the similarity score of the prediction and the true value
+        class_score = []
         for i in range(0, self.num_classes):
             if self.loss_type == 'dice':
-                class_loss.append(diceCoeff(y_pred[:, i:i + 1, :], y_true[:, i:i + 1, :], activation=self.activation))
+                class_score.append(diceCoeff(y_pred[:, i:i + 1, :], y_true[:, i:i + 1, :], activation=self.activation))
             elif self.loss_type == 'cross_entropy':
-                class_loss.append(F.cross_entropy(y_pred, y_true.float(), ignore_index=-1))
+                class_score.append(F.cross_entropy(y_pred, y_true.float(), ignore_index=-1))
             else:
                 raise "err lose type"
-        mean_loss = sum(class_loss) / len(class_loss)
+        ##?Question: it should be count the dice loss first like 1-dice_score then caculate the mean or 
+        ##                                                     score it first then mean
+        mean_loss = sum(class_score) / len(class_score)
         return 1 - mean_loss
